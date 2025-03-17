@@ -17,3 +17,11 @@ pandas==2.2.3
 # API
 fastapi
 uvicorn
+
+
+#face detection
+#pour cv2
+opencv-python
+#cmake pour dlib
+cmake
+dlib==19.24.2
