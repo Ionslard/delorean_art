@@ -22,6 +22,17 @@ uvicorn
 #face detection
 #pour cv2
 opencv-python
-#cmake pour dlib
+#cmake pour dlib, à voir si necessaire in the end
 cmake
-dlib==19.24.2
+dlib-bin
+#MTCNN
+torch
+torchvision
+torchaudio
+facenet-pytorch
+
+#assess diversity of database
+#fairface https://github.com/dchen236/FairFace?tab=readme-ov-file
+
+
+tensorflow
