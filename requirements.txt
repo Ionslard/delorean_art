@@ -30,9 +30,19 @@ torch
 torchvision
 torchaudio
 facenet-pytorch
+tf-keras
+matplotlib
+ultralytics
+insightface
+onnxruntime
+mediapipe
+face_alignment
+
+
 
 #assess diversity of database
 #fairface https://github.com/dchen236/FairFace?tab=readme-ov-file
 
-
+DeepFace
 tensorflow
+scikit-learn
