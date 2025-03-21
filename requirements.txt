@@ -5,11 +5,11 @@ numpy<2.0.0
 pandas==2.2.3
 
 # Uncomment if you use sklearn
-# scikit-learn==1.6.1
+scikit-learn==1.6.1
 
 # Install the correct TensorFlow version
 # Uncomment if you use TensorFlow
-# tensorflow==2.16.2    # For both Intel and Apple silicon
+tensorflow==2.16.2    # For both Intel and Apple silicon
 # keras==3.8.0
 
 # Google Cloud
@@ -32,9 +32,16 @@ torch
 torchvision
 torchaudio
 facenet-pytorch
+tf-keras
+matplotlib
+ultralytics
+insightface
+onnxruntime
+mediapipe
+face_alignment
+DeepFace
+
 
 #assess diversity of database
 #fairface https://github.com/dchen236/FairFace?tab=readme-ov-file
 
-
-tensorflow
