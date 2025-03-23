@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import os
+
 from deepface import DeepFace
 import cv2
 
@@ -26,7 +28,7 @@ def embedding_image(img_array, model):
         embedding = represent_face_from_array(img_array, model)
 
         if embedding is not None:
-            return pd.DataFrame(np.array(embedding[0]['embedding'])).T
+            return pd.DataFrame(embedding[0]['embedding']).T
 
     return None
 
@@ -52,10 +54,10 @@ def represent_face_from_array(img_array, model):
 
 def delorean_normalisation(X):
     """
-    Applique une normalisation L2 aux vecteurs (chaque ligne devient un vecteur unitaire).
+    Applique une normalisation L2 aux vecteurs.
 
     Paramètres :
-        X (pd.DataFrame) : DataFrame contenant des vecteurs (chaque ligne = un vecteur).
+        X (pd.DataFrame) : DataFrame contenant des vecteurs (embeddings).
 
     Retour :
         pd.DataFrame : DataFrame normalisée, où chaque ligne a une norme L2 de 1.
