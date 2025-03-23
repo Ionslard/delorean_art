@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
+import os
+import matplotlib.image as mpimg
 
-def show_comparison(result):
+def show_comparison(photo_face,result):
     """
     Affiche les résultats de comparaison sous forme de grille d'images.
 
@@ -26,23 +28,28 @@ def show_comparison(result):
 
     for i, neighbor in enumerate(neighbors):
         # Colonne 1 : Visage d'entrée
-        axes[i][0].imshow(result["input_photo"])
+        axes[i][0].imshow(photo_face)
         axes[i][0].set_title("Input face")
         axes[i][0].axis('off')
 
         # Colonne 2 : Visage extrait du tableau
-        if neighbor.get("painting_face") is not None:
-            axes[i][1].imshow(neighbor["painting_face"])
+        face_path = neighbor.get("painting_face_path")
+        if face_path and os.path.exists(face_path):
+            painting_face_img = mpimg.imread(face_path)
+            axes[i][1].imshow(painting_face_img)
             axes[i][1].set_title(f"Match {i+1} - Face")
         else:
             axes[i][1].set_title(f"Match {i+1} - Visage introuvable")
         axes[i][1].axis('off')
 
         # Colonne 3 : Tableau original
-        if neighbor.get("original_painting") is not None:
-            axes[i][2].imshow(neighbor["original_painting"])
-            title = f"{neighbor.get('original_painting_artist', 'Artiste inconnu')} - {neighbor.get('original_painting_title', 'Titre inconnu')}"
-            axes[i][2].set_title(title)
+        painting_path = neighbor.get("original_painting_path")
+        if painting_path and os.path.exists(painting_path):
+            painting_img = mpimg.imread(painting_path)
+            axes[i][2].imshow(painting_img)
+            artist = neighbor.get("original_painting_artist", "Artiste inconnu")
+            title = neighbor.get("original_painting_title", "Titre inconnu")
+            axes[i][2].set_title(f"{artist} - {title}")
         else:
             axes[i][2].set_title("Tableau original introuvable")
         axes[i][2].axis('off')

@@ -14,7 +14,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, UploadFile, File, Response
 import numpy as np
 import cv2
-
+import os
+import pandas as pd
+from scripts.photo_face_detection import delorean_photo_face_detection
+from scripts.photo_face_embedding import embedding_image, delorean_normalisation
+from scripts.comparison import compare
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -26,11 +31,11 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Endpoint for https://your-domain.com/
+# Endpoint
 @app.get("/")
 def root():
     return {
-        'message': "Hi, The API is running!"
+        'message': "The Delorean API is now live!"
     }
 
 # comment Ruth: Endpoint pour charger une image
@@ -49,34 +54,38 @@ async def receive_image(img: UploadFile=File(...)):
 
 
         ### Faire le lien avec les modèles pour
+
+
+
+
         # 1. détecter les visages,
-        # 2. embedder la partie croppée,
+        face_crop = delorean_photo_face_detection(cv2_img)
+        if face_crop is None:
+            return Response(content="No face detected", media_type="text/plain", status_code=404)
+
+       # 2. embedder la partie croppée,
+        embedding = embedding_image(face_crop, model="VGG-Face")
+        if embedding is None:
+            return Response(content="Failed to compute embedding", media_type="text/plain", status_code=500)
+
+        # Normalisation
+        embedding = delorean_normalisation(embedding)
+
+        # Chargement des embeddings
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+        embedding_path = os.path.join(base_dir, "processed_data/vgg_5000_6_7.csv")
+        X=pd.read_csv(embedding_path,index_col=0)
+
         # 3. comparer la matrice
-        # 4. renvoyer l'image des tableaux "voisins" avec le titre et l'auteur
+        results_dict = compare(
+            X=X,
+            y=embedding,
+            neighbors=3,
+            comparison="cosine",
+                    )
 
-
-        # Encoder l'image pour la réponse > à supprimer quand le code sera complété
-        _, img_encoded = cv2.imencode('.png', cv2_img)  # extension depends on which format is sent from Streamlit
-        return Response(content=img_encoded.tobytes(), media_type="image/png")
+        return JSONResponse(content=results_dict)
 
 
     except Exception as e:
         return Response(content=f"Error processing image: {str(e)}", media_type="text/plain", status_code=500)
-
-
-# # code initial
-# # Endpoint for https://your-domain.com/predict?input_one=154&input_two=199
-# @app.get("/predict")
-# def get_predict(input_one: float,
-#             input_two: float):
-#     # TODO: Do something with your input
-#     # i.e. feed it to your model.predict, and return the output
-#     # For a dummy version, just return the sum of the two inputs and the original inputs
-#     prediction = float(input_one) + float(input_two)
-#     return {
-#         'prediction': prediction,
-#         'inputs': {
-#             'input_one': input_one,
-#             'input_two': input_two
-#         }
-#     }

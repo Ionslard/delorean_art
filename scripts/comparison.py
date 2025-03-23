@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.image as mpimg
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
-
+import unidecode
 
 ############################################################################################################
 #                              UTILS
@@ -41,12 +41,44 @@ def find_file_in_subfolders(filename, root_folder):
             return os.path.join(folder_path, filename)
     return None
 
+import re
+
+def extract_face_number(filename):
+    """
+    Extrait le nombre après 'face_' dans un nom de fichier, que ce soit suivi d'un underscore, d'un point ou de la fin du nom.
+
+    Paramètre :
+        filename (str) : Nom du fichier contenant un segment de type 'face_123', 'face_123_', ou 'face_123.jpg'.
+
+    Retour :
+        int ou None : Le nombre extrait après 'face_', ou None s'il n'est pas trouvé.
+    """
+    match = re.search(r"face_(\d+)(?:_|\.|$)", filename)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+
+def wikiart_url_to_image_url(wikiart_link: str) -> str:
+    # Enlever la langue (ex: /fr/)
+    url_parts = wikiart_link.replace("https://www.wikiart.org/", "").split("/")
+    if len(url_parts) < 2:
+        return None
+
+    # Extraire l’artiste et le titre
+    artist_raw = url_parts[-2]
+    title_raw = url_parts[-1]
+
+    # Concaténer dans l’URL finale
+    return f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
+
 
 ############################################################################################################
 #                              COMPARISON METHODS
 ############################################################################################################
 
-def cosine_model(X, y, neighbors, input_photo):
+def cosine_model(X, y, neighbors):
     """
     Recherche les voisins les plus similaires à une image via la similarité cosinus.
 
@@ -54,7 +86,7 @@ def cosine_model(X, y, neighbors, input_photo):
         X (pd.DataFrame) : Base d'embeddings indexée par les noms de fichiers des visages.
         y (np.ndarray) : Embedding de l'image cible (shape = [1, n]).
         neighbors (int) : Nombre de voisins à retourner.
-        input_photo (str) : Chemin ou nom de la photo cible.
+
 
     Retour :
         dict : Résultat contenant le nom de l'image de départ, et les voisins similaires avec infos :
@@ -72,7 +104,6 @@ def cosine_model(X, y, neighbors, input_photo):
     nearest_indices = np.argsort(-cosine_sim, axis=1)[:, :n_neighbors]
 
     results = {
-        "input_photo": input_photo,
         "neighbors": []
     }
 
@@ -95,21 +126,28 @@ def cosine_model(X, y, neighbors, input_photo):
         title_no_ext = os.path.splitext(original_painting_title_raw)[0]
         original_painting_title = title_no_ext.replace("-", " ").title()
         original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
+        original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
+        face_index=extract_face_number(neighbor_index)
+
 
         results["neighbors"].append({
-            "index": neighbor_index,
-            "similarity": similarity,
-            "painting_face": painting_face,
-            "original_painting": original_painting,
+            "index": neighbor_index,#nom du fichier painting face
+            "face_index" :face_index,
+            "similarity": round(similarity, 3),
+            "painting_face_path": painting_face_path,
+           # "painting_face": painting_face,
+          #  "original_painting": original_painting,
+            "original_painting_path":original_painting_path,
             "original_painting_artist": original_painting_artist,
             "original_painting_title": original_painting_title,
             "original_painting_wikiart_link": original_painting_wikiart_link,
+            "original_painting_image_url": original_painting_image_url
         })
 
     return results
 
 
-def KNN_model(X, y, neighbors, input_photo):
+def KNN_model(X, y, neighbors):
     """
     TODO : Implémentation de la recherche des plus proches voisins via KNN.
 
@@ -117,15 +155,13 @@ def KNN_model(X, y, neighbors, input_photo):
         X (pd.DataFrame) : Base d'embeddings.
         y (np.ndarray) : Embedding de l'image cible.
         neighbors (int) : Nombre de voisins à retourner.
-        input_photo (str) : Image cible.
 
     Retour :
         dict : Résultat structuré comme dans cosine_model.
     """
     # À implémenter si besoin
     return {
-        "input_photo": input_photo,
-        "neighbors": []
+       "neighbors": []
     }
 
 
@@ -133,7 +169,7 @@ def KNN_model(X, y, neighbors, input_photo):
 #                                     COMPARISON
 ############################################################################################################
 
-def compare(X, y, neighbors, comparison, input_photo):
+def compare(X, y, neighbors, comparison):
     """
     Compare un embedding à une base en choisissant une méthode de similarité.
 
@@ -149,6 +185,6 @@ def compare(X, y, neighbors, comparison, input_photo):
     """
     print(f"Embedding model: on X name, comparison model: {comparison}")
     if comparison == "cosine":
-        return cosine_model(X, y, neighbors, input_photo)
+        return cosine_model(X, y, neighbors)
     if comparison == "KNN":
-        return KNN_model(X, y, neighbors, input_photo)
+        return KNN_model(X, y, neighbors)
