@@ -269,6 +269,76 @@ def KNN_model(X, y, neighbors):
        "neighbors": []
     }
 
+def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
+    """
+    TODO : Implémentation de la recherche des plus proches voisins via KNN.
+
+    Paramètres :
+        X (pd.DataFrame) : Base d'embeddings.
+        y (np.ndarray) : Embedding de l'image cible.
+        neighbors (int) : Nombre de voisins à retourner.
+
+    Retour :
+        dict : Résultat structuré comme dans cosine_model.
+    """
+    n_neighbors = 3
+    knn = NearestNeighbors(
+    n_neighbors=neighbors,
+    algorithm='auto',
+    leaf_size=30,
+    metric='minkowski',
+    n_jobs=-1)
+
+    knn.fit(X)
+
+    distances, indices = knn.kneighbors(y)
+
+    results = {
+        "neighbors": []
+    }
+
+    for j in range(n_neighbors):
+        neighbor_index = X.index[indices[0][j]]
+        similarity = distances[j]
+
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+        faces_dir = os.path.join(base_dir, "processed_data/5000visages_model_7_6")
+        painting_face_path = os.path.join(faces_dir, neighbor_index)
+        painting_face = mpimg.imread(painting_face_path)
+
+        original_painting_name = original_painting_title_back(neighbor_index)
+        root_folder = os.path.join(base_dir, "data/wikiart")
+        original_painting_path = find_file_in_subfolders(original_painting_name, root_folder)
+        original_painting = mpimg.imread(original_painting_path)
+
+        original_painting_artist_raw, original_painting_title_raw = original_painting_name.split("_", 1)
+        original_painting_artist = original_painting_artist_raw.replace("-", " ").title()
+        title_no_ext = os.path.splitext(original_painting_title_raw)[0]
+        original_painting_title = title_no_ext.replace("-", " ").title()
+        original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
+        original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
+        face_index=extract_face_number(neighbor_index)
+        csv_path=os.path.join(base_dir, "processed_data/faces_coordinates.csv")
+        face_coordinates=get_face_coordinates_from_csv(csv_path, neighbor_index)
+
+        results["neighbors"].append({
+            "index": neighbor_index,#nom du fichier painting face
+            "face_index" :face_index,
+            "face_coordinates" :face_coordinates,
+            "similarity": round(similarity, 3),
+            "painting_face_path": painting_face_path,
+           # "painting_face": painting_face,
+          #  "original_painting": original_painting,
+
+
+            "original_painting_path":original_painting_path,
+            "original_painting_artist": original_painting_artist,
+            "original_painting_title": original_painting_title,
+            "original_painting_wikiart_link": original_painting_wikiart_link,
+            "original_painting_image_url": original_painting_image_url
+        })
+
+    return results
 
 ############################################################################################################
 #                                     COMPARISON
