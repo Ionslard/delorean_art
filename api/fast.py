@@ -16,7 +16,7 @@ import numpy as np
 import cv2
 import os
 import pandas as pd
-from scripts.photo_face_detection import delorean_photo_face_detection
+from scripts.photo_face_detection import delorean_photo_face_detection_coordinates
 from scripts.photo_face_embedding import embedding_image, delorean_normalisation
 from scripts.comparison import compare
 from fastapi.responses import JSONResponse
@@ -59,7 +59,8 @@ async def receive_image(img: UploadFile=File(...)):
 
 
         # 1. détecter les visages,
-        face_crop = delorean_photo_face_detection(cv2_img)
+        input=delorean_photo_face_detection_coordinates(cv2_img)
+        face_crop = input[0]
         if face_crop is None:
             return Response(content="No face detected", media_type="text/plain", status_code=404)
 
@@ -83,6 +84,7 @@ async def receive_image(img: UploadFile=File(...)):
             neighbors=3,
             comparison="cosine",
                     )
+        results_dict["input_photo_coordinates"]=input[1]
 
         return JSONResponse(content=results_dict)
 

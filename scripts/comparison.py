@@ -1,6 +1,7 @@
 import os
 import re
 import numpy as np
+import pandas as pd
 import matplotlib.image as mpimg
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
@@ -74,11 +75,43 @@ def wikiart_url_to_image_url(wikiart_link: str) -> str:
     return f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
 
 
+import pandas as pd
+
+def get_face_coordinates_from_csv(csv_path, target_filename):
+    """
+    Lit un CSV avec pandas et retourne les coordonnées et la taille de l'image
+    associées à un nom de fichier donné.
+
+    :param csv_path: Chemin vers le fichier CSV
+    :param target_filename: Nom de fichier exact à chercher (ex: "mon_image_face_1.jpg")
+    :return: Liste de tuples (x1, y1, x2, y2, width, height) ou [] si rien trouvé
+    """
+    try:
+        df = pd.read_csv(csv_path)
+
+        # Filtrage
+        filtered = df[df['filename'] == target_filename]
+
+        # Vérifie que toutes les colonnes nécessaires sont bien là
+        required_cols = {'x1', 'y1', 'x2', 'y2', 'orig_width', 'orig_height'}
+        if not required_cols.issubset(set(df.columns)):
+            print("❌ Colonnes manquantes dans le CSV.")
+            return []
+
+        # Extraction sous forme de tuples
+        return list(filtered[['x1', 'y1', 'x2', 'y2', 'orig_width', 'orig_height']].itertuples(index=False, name=None))
+
+    except FileNotFoundError:
+        print(f"❌ Fichier CSV non trouvé : {csv_path}")
+    except Exception as e:
+        print(f"⚠️ Erreur pendant la lecture du CSV : {e}")
+
+    return []
+
 ############################################################################################################
 #                              COMPARISON METHODS
 ############################################################################################################
-
-def cosine_model(X, y, neighbors):
+def cosine_model_without_coordinates(X, y, neighbors):
     """
     Recherche les voisins les plus similaires à une image via la similarité cosinus.
 
@@ -137,6 +170,78 @@ def cosine_model(X, y, neighbors):
             "painting_face_path": painting_face_path,
            # "painting_face": painting_face,
           #  "original_painting": original_painting,
+            "original_painting_path":original_painting_path,
+            "original_painting_artist": original_painting_artist,
+            "original_painting_title": original_painting_title,
+            "original_painting_wikiart_link": original_painting_wikiart_link,
+            "original_painting_image_url": original_painting_image_url
+        })
+
+    return results
+
+def cosine_model(X, y, neighbors):
+    """
+    Recherche les voisins les plus similaires à une image via la similarité cosinus.
+
+    Paramètres :
+        X (pd.DataFrame) : Base d'embeddings indexée par les noms de fichiers des visages.
+        y (np.ndarray) : Embedding de l'image cible (shape = [1, n]).
+        neighbors (int) : Nombre de voisins à retourner.
+
+
+    Retour :
+        dict : Résultat contenant le nom de l'image de départ, et les voisins similaires avec infos :
+            - index (str) : nom du fichier "_face_..."
+            - similarity (float)
+            - painting_face (np.ndarray) : image visage
+            - original_painting (np.ndarray) : image du tableau original
+            - original_painting_artist (str)
+            - original_painting_title (str)
+            - original_painting_wikiart_link (str)
+    """
+    cosine_sim = cosine_similarity(y, X)
+    n_neighbors = neighbors
+
+    nearest_indices = np.argsort(-cosine_sim, axis=1)[:, :n_neighbors]
+
+    results = {
+        "neighbors": []
+    }
+
+    for j in range(n_neighbors):
+        neighbor_index = X.index[nearest_indices[0][j]]
+        similarity = cosine_sim[0][nearest_indices[0][j]]
+
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+        faces_dir = os.path.join(base_dir, "processed_data/5000visages_model_7_6")
+        painting_face_path = os.path.join(faces_dir, neighbor_index)
+        painting_face = mpimg.imread(painting_face_path)
+
+        original_painting_name = original_painting_title_back(neighbor_index)
+        root_folder = os.path.join(base_dir, "data/wikiart")
+        original_painting_path = find_file_in_subfolders(original_painting_name, root_folder)
+        original_painting = mpimg.imread(original_painting_path)
+
+        original_painting_artist_raw, original_painting_title_raw = original_painting_name.split("_", 1)
+        original_painting_artist = original_painting_artist_raw.replace("-", " ").title()
+        title_no_ext = os.path.splitext(original_painting_title_raw)[0]
+        original_painting_title = title_no_ext.replace("-", " ").title()
+        original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
+        original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
+        face_index=extract_face_number(neighbor_index)
+        csv_path=os.path.join(base_dir, "processed_data/faces_coordinates.csv")
+        face_coordinates=get_face_coordinates_from_csv(csv_path, neighbor_index)
+
+        results["neighbors"].append({
+            "index": neighbor_index,#nom du fichier painting face
+            "face_index" :face_index,
+            "face_coordinates" :face_coordinates,
+            "similarity": round(similarity, 3),
+            "painting_face_path": painting_face_path,
+           # "painting_face": painting_face,
+          #  "original_painting": original_painting,
+
+
             "original_painting_path":original_painting_path,
             "original_painting_artist": original_painting_artist,
             "original_painting_title": original_painting_title,
