@@ -9,8 +9,8 @@ scikit-learn==1.6.1
 
 # Install the correct TensorFlow version
 # Uncomment if you use TensorFlow
-tensorflow==2.16.2    # For both Intel and Apple silicon
-# keras==3.8.0
+tensorflow==2.19    # For both Intel and Apple silicon
+tf-keras
 
 # Google Cloud
 # Uncomment if you use Google Cloud Storage
@@ -20,28 +20,29 @@ tensorflow==2.16.2    # For both Intel and Apple silicon
 fastapi
 uvicorn
 
+# lire BDD
+fastparquet
 
 #face detection
 #pour cv2
 opencv-python
-#cmake pour dlib, à voir si necessaire in the end
-cmake
-dlib-bin
-#MTCNN
-torch
-torchvision
-torchaudio
-facenet-pytorch
-tf-keras
-matplotlib
+# cmake pour dlib, à voir si necessaire in the end
+# cmake
+# dlib-bin
+# MTCNN
+# torch
+# torchvision
+# torchaudio
+# facenet-pytorch
+
+# utile pour la data preparation only
 ultralytics
-insightface
+# insightface
 onnxruntime
-mediapipe
-face_alignment
+# mediapipe
+# face_alignment
 DeepFace
 
 
 #assess diversity of database
 #fairface https://github.com/dchen236/FairFace?tab=readme-ov-file
-

@@ -1,5 +1,7 @@
 # TODO: Import your package, replace this by explicit imports of what you need
-# from packagename.main import predict
+from packagename.photo_face_detection import delorean_photo_face_detection_coordinates
+from packagename.photo_face_embedding import embedding_image, delorean_normalisation
+from packagename.comparison import compare
 
 ########################################
 # pip install opencv-python
@@ -16,10 +18,11 @@ import numpy as np
 import cv2
 import os
 import pandas as pd
-from scripts.photo_face_detection import delorean_photo_face_detection_coordinates
-from scripts.photo_face_embedding import embedding_image, delorean_normalisation
-from scripts.comparison import compare
+# from scripts.photo_face_detection import delorean_photo_face_detection_coordinates
+# from scripts.photo_face_embedding import embedding_image, delorean_normalisation
+# from scripts.comparison import compare
 from fastapi.responses import JSONResponse
+
 
 app = FastAPI()
 
@@ -56,8 +59,6 @@ async def receive_image(img: UploadFile=File(...), measure: str = Form(...)):
         ### Faire le lien avec les modèles pour
 
 
-
-
         # 1. détecter les visages,
         input=delorean_photo_face_detection_coordinates(cv2_img)
         face_crop = input[0]
@@ -73,10 +74,9 @@ async def receive_image(img: UploadFile=File(...), measure: str = Form(...)):
         embedding = delorean_normalisation(embedding)
 
         # Chargement des embeddings
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-        embedding_path = os.path.join(base_dir, "processed_data/face512_5000_normalized.csv")
-       # embedding_path = os.path.join(base_dir, "processed_data/arcface_5000_6_7.csv")
-        X = pd.read_csv(embedding_path,index_col=0)
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+        embedding_path = os.path.join(base_dir, "../csv_source/X_full_512_final.parquet")
+        X=pd.read_parquet(embedding_path)
 
         # 3. comparer la matrice
         results_dict = compare(
