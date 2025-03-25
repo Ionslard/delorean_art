@@ -75,7 +75,7 @@ async def receive_image(img: UploadFile=File(...)):
 
         # Chargement des embeddings
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-        embedding_path = os.path.join(base_dir, "../sources/X_full_512_final.parquet")
+        embedding_path = os.path.join(base_dir, "../csv_source/X_full_512_final.parquet")
         X=pd.read_parquet(embedding_path)
 
         # 3. comparer la matrice

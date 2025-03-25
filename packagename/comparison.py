@@ -169,9 +169,9 @@ def cosine_model(X, y, neighbors):
             face_index = extract_face_number(neighbor_index)
 
             # Chemin vers les données CSV
-            csv_path_coordinates = os.path.join(base_dir, "../sources/faces_coordinates.csv")
+            csv_path_coordinates = os.path.join(base_dir, "../csv_source/faces_coordinates.csv")
             face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
-            csv_path_ruth = os.path.join(base_dir, "../sources/url_additionnal_paintings.csv")
+            csv_path_ruth = os.path.join(base_dir, "../csv_source/url_additionnal_paintings.csv")
 
             # Image URL
             image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)
@@ -233,7 +233,7 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
 
     for j in range(n_neighbors):
         neighbor_index = X.index[indices[0][j]]
-        similarity = distances[j]
+        similarity = distances[0][j]
 
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
         original_painting_name = original_painting_title_back(neighbor_index)
@@ -249,9 +249,9 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
         face_index = extract_face_number(neighbor_index)
 
         # Chemin vers les données CSV
-        csv_path_coordinates = os.path.join(base_dir, "../sources/faces_coordinates.csv")
+        csv_path_coordinates = os.path.join(base_dir, "../csv_source/faces_coordinates.csv")
         face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
-        csv_path_ruth = os.path.join(base_dir, "../sources/url_additionnal_paintings.csv")
+        csv_path_ruth = os.path.join(base_dir, "../csv_source/url_additionnal_paintings.csv")
 
         # Image URL
         image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)
@@ -261,8 +261,6 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
         else:
             original_painting_wikiart_link = None
             original_painting_image_url = image_url
-
-        print(f"❌ Similarity {similarity}")
 
         results["neighbors"].append({
                 "index": neighbor_index,
