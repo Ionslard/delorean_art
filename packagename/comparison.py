@@ -275,7 +275,6 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
                 "original_painting_image_url": original_painting_image_url,
                             })
 
-
     return results
 
 
