@@ -88,9 +88,12 @@ def get_face_coordinates_from_csv(csv_path, target_filename):
     """
     try:
         df = pd.read_csv(csv_path)
+        print(f" reading:  {target_filename} ")
 
         # Filtrage
+
         filtered = df[df['filename'] == target_filename]
+        print(f" filtrage:  {df.head()} ")
 
         # Vérifie que toutes les colonnes nécessaires sont bien là
         required_cols = {'x1', 'y1', 'x2', 'y2', 'orig_width', 'orig_height'}
@@ -98,7 +101,7 @@ def get_face_coordinates_from_csv(csv_path, target_filename):
 )
         if not required_cols.issubset(set(df.columns)):
             print("❌ Colonnes manquantes dans le CSV.")
-            return []
+            return ["❌ Colonnes manquantes dans le CSV."]
 
         # Extraction sous forme de tuples
         return list(filtered[['x1', 'y1', 'x2', 'y2', 'orig_width', 'orig_height']].itertuples(index=False, name=None))
@@ -108,7 +111,7 @@ def get_face_coordinates_from_csv(csv_path, target_filename):
     except Exception as e:
         print(f"⚠️ Erreur pendant la lecture du CSV : {e}")
 
-    return []
+    #return []
 
 
 
@@ -171,6 +174,9 @@ def cosine_model(X, y, neighbors):
             # Chemin vers les données CSV
             csv_path_coordinates = os.path.join(base_dir, "processed_data/faces_coordinates.csv")
             face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
+            #raise ValueError(f" ERROR: {face_coordinates}")
+
+
             csv_path_ruth = os.path.join(base_dir, "processed_data/additionnal_paintings.csv")
 
             # Image URL
@@ -203,7 +209,7 @@ def cosine_model(X, y, neighbors):
 
 
 
-def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
+def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='euclidean'):
     """
     Implémentation de la recherche des plus proches voisins via KNN.
 
@@ -233,7 +239,7 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
 
     for j in range(n_neighbors):
         neighbor_index = X.index[indices[0][j]]
-        similarity = distances[j]
+        similarity = distances[0][j]
 
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
         original_painting_name = original_painting_title_back(neighbor_index)

@@ -11,7 +11,7 @@
 from fastapi.middleware.cors import CORSMiddleware
 
 # ajout de package
-from fastapi import FastAPI, UploadFile, File, Response
+from fastapi import FastAPI, UploadFile, File, Form, Response
 import numpy as np
 import cv2
 import os
@@ -40,7 +40,7 @@ def root():
 
 # comment Ruth: Endpoint pour charger une image
 @app.post('/upload_image')
-async def receive_image(img: UploadFile=File(...)):
+async def receive_image(img: UploadFile=File(...), measure: str = Form(...)):
     try:
         ### Receiving the image
         contents = await img.read()
@@ -65,7 +65,7 @@ async def receive_image(img: UploadFile=File(...)):
             return Response(content="No face detected", media_type="text/plain", status_code=404)
 
        # 2. embedder la partie croppée,
-        embedding = embedding_image(face_crop, model="VGG-Face")
+        embedding = embedding_image(face_crop, model="Facenet512")
         if embedding is None:
             return Response(content="Failed to compute embedding", media_type="text/plain", status_code=500)
 
@@ -74,15 +74,16 @@ async def receive_image(img: UploadFile=File(...)):
 
         # Chargement des embeddings
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-        embedding_path = os.path.join(base_dir, "processed_data/vgg_5000_6_7.csv")
-        X=pd.read_csv(embedding_path,index_col=0)
+        embedding_path = os.path.join(base_dir, "processed_data/face512_5000_normalized.csv")
+       # embedding_path = os.path.join(base_dir, "processed_data/arcface_5000_6_7.csv")
+        X = pd.read_csv(embedding_path,index_col=0)
 
         # 3. comparer la matrice
         results_dict = compare(
             X=X,
             y=embedding,
             neighbors=3,
-            comparison="cosine",
+            comparison=measure,
                     )
         results_dict["input_photo_coordinates"]=input[1]
 
