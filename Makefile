@@ -96,7 +96,7 @@ docker_run_interactively:
 docker_allow:
 	gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev
 
-dock
+docker_repo:
 	gcloud artifacts repositories create $(DOCKER_REPO_NAME) \
 		--repository-format=docker \
 		--location=$(GCP_REGION) \
