@@ -1,5 +1,6 @@
 import os
 import re
+import requests
 import numpy as np
 import pandas as pd
 import matplotlib.image as mpimg
@@ -61,18 +62,39 @@ def extract_face_number(filename):
 
 
 
-def wikiart_url_to_image_url(wikiart_link: str) -> str:
+#def wikiart_url_to_image_url(wikiart_link: str) -> str:
+    # Enlever la langue (ex: /fr/)
+#    url_parts = wikiart_link.replace("https://www.wikiart.org/", "").split("/")
+#    if len(url_parts) < 2:
+#        return None
+
+    # Extraire l’artiste et le titre
+#    artist_raw = url_parts[-2]
+#    title_raw = url_parts[-1]
+
+    # Concaténer dans l’URL finale
+#    return f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
+
+def wikiart_url_to_image_url(wikiart_link):
     # Enlever la langue (ex: /fr/)
     url_parts = wikiart_link.replace("https://www.wikiart.org/", "").split("/")
     if len(url_parts) < 2:
         return None
 
-    # Extraire l’artiste et le titre
+    # Extraire l'artiste et le titre
     artist_raw = url_parts[-2]
     title_raw = url_parts[-1]
 
-    # Concaténer dans l’URL finale
-    return f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
+    # Concaténer dans l'URL finale
+    large_image_url = f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
+    default_image_url = f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg"
+
+    # Vérifier si l'image avec la taille "Large" existe
+    if requests.head(large_image_url).status_code == 200:
+        return large_image_url
+    else:
+        return default_image_url
+
 
 
 import pandas as pd
@@ -155,7 +177,8 @@ def cosine_model(X, y, neighbors):
             neighbor_index = X.index[nearest_indices[0][j]]
             similarity = cosine_sim[0][nearest_indices[0][j]]
 
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
             original_painting_name = original_painting_title_back(neighbor_index)
 
             if "_" not in original_painting_name:
@@ -169,9 +192,9 @@ def cosine_model(X, y, neighbors):
             face_index = extract_face_number(neighbor_index)
 
             # Chemin vers les données CSV
-            csv_path_coordinates = os.path.join(base_dir, "../csv_source/faces_coordinates.csv")
+            csv_path_coordinates = os.path.join(base_dir,"csv_source/faces_coordinates.csv")
             face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
-            csv_path_ruth = os.path.join(base_dir, "../csv_source/url_additionnal_paintings.csv")
+            csv_path_ruth = os.path.join(base_dir,"csv_source/urlx_additionnal_paintings.csv")
 
             # Image URL
             image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)
@@ -215,7 +238,7 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
     Retour :
         dict : Résultat structuré comme dans cosine_model.
     """
-    n_neighbors = 3
+    n_neighbors = neighbors
     knn = NearestNeighbors(
     n_neighbors=neighbors,
     algorithm='auto',
@@ -235,7 +258,7 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
         neighbor_index = X.index[indices[0][j]]
         similarity = distances[0][j]
 
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
         original_painting_name = original_painting_title_back(neighbor_index)
 
         if "_" not in original_painting_name:
@@ -249,9 +272,9 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
         face_index = extract_face_number(neighbor_index)
 
         # Chemin vers les données CSV
-        csv_path_coordinates = os.path.join(base_dir, "../csv_source/faces_coordinates.csv")
+        csv_path_coordinates = os.path.join(base_dir,"csv_source/faces_coordinates.csv")
         face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
-        csv_path_ruth = os.path.join(base_dir, "../csv_source/url_additionnal_paintings.csv")
+        csv_path_ruth = os.path.join(base_dir,"csv_source/url_additionnal_paintings.csv")
 
         # Image URL
         image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)

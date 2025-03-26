@@ -43,7 +43,7 @@ def root():
 
 # comment Ruth: Endpoint pour charger une image
 @app.post('/upload_image')
-async def receive_image(img: UploadFile=File(...), measure: str = Form(...)):
+async def receive_image(img: UploadFile=File(...), matches: str = Form(...), category = Form(...), model = Form(...)):
     try:
         ### Receiving the image
         contents = await img.read()
@@ -75,15 +75,20 @@ async def receive_image(img: UploadFile=File(...), measure: str = Form(...)):
 
         # Chargement des embeddings
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-        embedding_path = os.path.join(base_dir, "../csv_source/X_full_512_final.parquet")
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
+        embedding_path = os.path.join(base_dir,"../csv_source/X_full_512_final.parquet")
+
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+        embedding_path = os.path.join(base_dir,f"csv_source/X_{category}_{model}_final.parquet")
+
         X=pd.read_parquet(embedding_path)
 
         # 3. comparer la matrice
         results_dict = compare(
             X=X,
             y=embedding,
-            neighbors=3,
-            comparison=measure,
+            neighbors=int(matches),
+            comparison="KNN",
                     )
         results_dict["input_photo_coordinates"]=input[1]
 
