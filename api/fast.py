@@ -78,10 +78,6 @@ async def receive_image(img: UploadFile=File(...), matches: str = Form(...), cat
         embedding = delorean_normalisation(embedding)
 
         # Chargement des embeddings
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
-        embedding_path = os.path.join(base_dir,"../csv_source/X_full_512_final.parquet")
-
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
         embedding_path = os.path.join(base_dir,f"csv_source/X_{category}_{model}_final.parquet")
 

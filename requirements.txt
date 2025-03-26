@@ -46,6 +46,6 @@ DeepFace
 omegaconf
 #assess diversity of database
 #fairface https://github.com/dchen236/FairFace?tab=readme-ov-file
-urllib
-BeautifulSoup
+urllib3
+beautifulsoup4
 requests
