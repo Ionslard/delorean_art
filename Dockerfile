@@ -11,14 +11,14 @@ FROM python:3.10
 #      Tensorflow version (attention: won't run on Apple Silicon)
 # FROM tensorflow/tensorflow:2.16.1
 
-# Copy everything we need into the image
-COPY packagename packagename
-COPY api api
-COPY requirements.txt requirements.txt
-COPY setup.py setup.py
-COPY models models
+# Copy model and embeddings
 COPY csv_source csv_source
-# COPY credentials.json credentials.json
+COPY models models
+
+# Install requirements
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
 # LIBGL pour lire openCV
 RUN apt-get update && apt-get install -y \
@@ -28,11 +28,11 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev
 
-# Install everything
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install .
-# RUN pip install python-multipart
+# COPY du code
+COPY packagename packagename
+COPY api api
+# COPY credentials.json credentials.json
+
 
 # Make directories that we need, but that are not included in the COPY
 # RUN mkdir /raw_data
