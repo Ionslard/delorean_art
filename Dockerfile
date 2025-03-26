@@ -17,7 +17,7 @@ COPY api api
 COPY requirements.txt requirements.txt
 COPY setup.py setup.py
 COPY models models
-COPY csv_source csv_sources
+COPY csv_source csv_source
 # COPY credentials.json credentials.json
 
 # LIBGL pour lire openCV
