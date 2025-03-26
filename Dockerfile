@@ -11,14 +11,15 @@ FROM python:3.10
 #      Tensorflow version (attention: won't run on Apple Silicon)
 # FROM tensorflow/tensorflow:2.16.1
 
-# Copy model and embeddings
-COPY csv_source csv_source
-COPY models models
 
 # Install requirements
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy model and embeddings
+COPY csv_source csv_source
+COPY models models
 
 # LIBGL pour lire openCV
 RUN apt-get update && apt-get install -y \
