@@ -30,8 +30,8 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev
 
 # COPY du code
-COPY packagename packagename
 COPY api api
+COPY packagename packagename
 # COPY credentials.json credentials.json
 
 
