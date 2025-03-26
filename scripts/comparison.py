@@ -5,7 +5,9 @@ import pandas as pd
 import matplotlib.image as mpimg
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
-
+import urllib.parse
+from bs4 import BeautifulSoup
+import requests
 
 ############################################################################################################
 #                              UTILS
@@ -61,19 +63,40 @@ def extract_face_number(filename):
 
 
 
-def wikiart_url_to_image_url(wikiart_link: str) -> str:
-    # Enlever la langue (ex: /fr/)
-    url_parts = wikiart_link.replace("https://www.wikiart.org/", "").split("/")
-    if len(url_parts) < 2:
+
+
+def wikiart_url_to_image_url(wikiart_link):
+    """
+    Extrait dynamiquement l'URL de l'image principale depuis une page WikiArt.
+
+    Paramètre :
+        wikiart_link (str) : Lien vers la page WikiArt du tableau.
+
+    Retour :
+        str : URL de l'image trouvée, ou None si échec.
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    try:
+        response = requests.get(wikiart_link, headers=headers)
+        if response.status_code != 200:
+            print(f"❌ Erreur HTTP {response.status_code} pour {wikiart_link}")
+            return None
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        og_image = soup.find("meta", property="og:image")
+
+        if og_image and og_image.get("content"):
+            return og_image["content"]
+        else:
+            print(f"⚠️ Aucun lien og:image trouvé sur {wikiart_link}")
+            return None
+
+    except Exception as e:
+        print(f"⚠️ Erreur lors de l'accès à la page WikiArt : {e}")
         return None
-
-    # Extraire l’artiste et le titre
-    artist_raw = url_parts[-2]
-    title_raw = url_parts[-1]
-
-    # Concaténer dans l’URL finale
-    return f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
-
 
 import pandas as pd
 
@@ -209,7 +232,7 @@ def cosine_model(X, y, neighbors):
 
 
 
-def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='euclidean'):
+def KNN_model(X, y, neighbors, algorithm='auto', leaf_size=30, metric='minkowski'):
     """
     Implémentation de la recherche des plus proches voisins via KNN.
 
@@ -221,7 +244,7 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='euclidean'):
     Retour :
         dict : Résultat structuré comme dans cosine_model.
     """
-    n_neighbors = 3
+    n_neighbors = neighbors
     knn = NearestNeighbors(
     n_neighbors=neighbors,
     algorithm='auto',
@@ -241,7 +264,7 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='euclidean'):
         neighbor_index = X.index[indices[0][j]]
         similarity = distances[0][j]
 
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
         original_painting_name = original_painting_title_back(neighbor_index)
 
         if "_" not in original_painting_name:
@@ -249,25 +272,27 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='euclidean'):
             continue
 
         original_painting_artist_raw, original_painting_title_raw = original_painting_name.split("_", 1)
+        original_painting_artist_raw = re.sub(r'\.', '-', original_painting_artist_raw)  # Remplacer les points par des tirets
+        original_painting_artist_raw = re.sub(r'-+', '-', original_painting_artist_raw)  # Remplacer les tirets multiples par un seul tiret
+        original_painting_artist_raw_encoded = urllib.parse.quote(original_painting_artist_raw)  # Encodage pour URL
         original_painting_artist = original_painting_artist_raw.replace("-", " ").title()
         title_no_ext = os.path.splitext(original_painting_title_raw)[0]
         original_painting_title = title_no_ext.replace("-", " ").title()
         face_index = extract_face_number(neighbor_index)
 
         # Chemin vers les données CSV
-        csv_path_coordinates = os.path.join(base_dir, "processed_data/faces_coordinates.csv")
+        csv_path_coordinates = os.path.join(base_dir,"csv_source/faces_coordinates.csv")
         face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
-        csv_path_ruth = os.path.join(base_dir, "processed_data/additionnal_paintings.csv")
+        csv_path_ruth = os.path.join(base_dir,"csv_source/url_additionnal_paintings.csv")
 
         # Image URL
         image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)
         if image_url is False:
-            original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
+            original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw_encoded}/{title_no_ext}"
             original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
         else:
             original_painting_wikiart_link = None
             original_painting_image_url = image_url
-
 
         results["neighbors"].append({
                 "index": neighbor_index,
@@ -281,7 +306,6 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='euclidean'):
                             })
 
     return results
-
 
 ############################################################################################################
 #                                     COMPARISON
