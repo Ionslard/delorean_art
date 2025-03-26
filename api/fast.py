@@ -57,7 +57,10 @@ async def receive_image(img: UploadFile=File(...), matches: str = Form(...), cat
 
 
         ### Faire le lien avec les modèles pour
-
+        if model=="ghost":
+            embedding_model="GhostFaceNet"
+        else:
+            embedding_model="Facenet512"
 
         # 1. détecter les visages,
         input=delorean_photo_face_detection_coordinates(cv2_img)
@@ -66,9 +69,10 @@ async def receive_image(img: UploadFile=File(...), matches: str = Form(...), cat
             return Response(content="No face detected", media_type="text/plain", status_code=404)
 
        # 2. embedder la partie croppée,
-        embedding = embedding_image(face_crop, model="Facenet512")
+        embedding = embedding_image(face_crop, embedding_model)
         if embedding is None:
             return Response(content="Failed to compute embedding", media_type="text/plain", status_code=500)
+
 
         # Normalisation
         embedding = delorean_normalisation(embedding)
