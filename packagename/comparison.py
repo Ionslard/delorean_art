@@ -260,14 +260,14 @@ def KNN_model(X, y, neighbors, algorithm='auto', leaf_size=30, metric='minkowski
         if image_url is False:
             original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
 
-            try:
-                response = requests.get(original_painting_wikiart_link, timeout=3)
-                if response.status_code != 200:
-                    print(f"⚠️ Lien WikiArt invalide : {original_painting_wikiart_link}")
-                    continue
-            except requests.RequestException:
-                print(f"⚠️ Erreur lors de l'accès à : {original_painting_wikiart_link}")
-                continue
+            # try:
+            #     response = requests.get(original_painting_wikiart_link, timeout=3)
+            #     if response.status_code != 200:
+            #         print(f"⚠️ Lien WikiArt invalide : {original_painting_wikiart_link}")
+            #         continue
+            # except requests.RequestException:
+            #     print(f"⚠️ Erreur lors de l'accès à : {original_painting_wikiart_link}")
+            #     continue
 
             original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
         else:
