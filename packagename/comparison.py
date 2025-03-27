@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.image as mpimg
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
-
+from bs4 import BeautifulSoup
 
 ############################################################################################################
 #                              UTILS
@@ -24,26 +24,9 @@ def original_painting_title_back(filename):
     """
     name, ext = os.path.splitext(filename)
     name = re.sub(r"_face_\d+.*", "", name)
+    name= re.sub(r"\(\d+\)$", "", name).strip()
     return name + ext
 
-
-def find_file_in_subfolders(filename, root_folder):
-    """
-    Recherche récursivement un fichier dans tous les sous-dossiers d'un dossier racine.
-
-    Paramètres :
-        filename (str) : Nom du fichier à rechercher.
-        root_folder (str) : Dossier racine dans lequel effectuer la recherche.
-
-    Retour :
-        str | None : Chemin complet du fichier trouvé, ou None si introuvable.
-    """
-    for folder_path, subfolders, files in os.walk(root_folder):
-        if filename in files:
-            return os.path.join(folder_path, filename)
-    return None
-
-import re
 
 def extract_face_number(filename):
     """
@@ -62,42 +45,39 @@ def extract_face_number(filename):
 
 
 
-#def wikiart_url_to_image_url(wikiart_link: str) -> str:
-    # Enlever la langue (ex: /fr/)
-#    url_parts = wikiart_link.replace("https://www.wikiart.org/", "").split("/")
-#    if len(url_parts) < 2:
-#        return None
-
-    # Extraire l’artiste et le titre
-#    artist_raw = url_parts[-2]
-#    title_raw = url_parts[-1]
-
-    # Concaténer dans l’URL finale
-#    return f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
-
 def wikiart_url_to_image_url(wikiart_link):
-    # Enlever la langue (ex: /fr/)
-    url_parts = wikiart_link.replace("https://www.wikiart.org/", "").split("/")
-    if len(url_parts) < 2:
+    """
+    Extrait dynamiquement l'URL de l'image principale depuis une page WikiArt.
+
+    Paramètre :
+        wikiart_link (str) : Lien vers la page WikiArt du tableau.
+
+    Retour :
+        str : URL de l'image trouvée, ou None si échec.
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    try:
+        response = requests.get(wikiart_link, headers=headers)
+        if response.status_code != 200:
+            print(f"❌ Erreur HTTP {response.status_code} pour {wikiart_link}")
+            return None
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        og_image = soup.find("meta", property="og:image")
+
+        if og_image and og_image.get("content"):
+            return og_image["content"]
+        else:
+            print(f"⚠️ Aucun lien og:image trouvé sur {wikiart_link}")
+            return None
+
+    except Exception as e:
+        print(f"⚠️ Erreur lors de l'accès à la page WikiArt : {e}")
         return None
 
-    # Extraire l'artiste et le titre
-    artist_raw = url_parts[-2]
-    title_raw = url_parts[-1]
-
-    # Concaténer dans l'URL finale
-    large_image_url = f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg!Large.jpg"
-    default_image_url = f"https://uploads3.wikiart.org/images/{artist_raw}/{title_raw}.jpg"
-
-    # Vérifier si l'image avec la taille "Large" existe
-    if requests.head(large_image_url).status_code == 200:
-        return large_image_url
-    else:
-        return default_image_url
-
-
-
-import pandas as pd
 
 def get_face_coordinates_from_csv(csv_path, target_filename):
     """
@@ -116,8 +96,7 @@ def get_face_coordinates_from_csv(csv_path, target_filename):
 
         # Vérifie que toutes les colonnes nécessaires sont bien là
         required_cols = {'x1', 'y1', 'x2', 'y2', 'orig_width', 'orig_height'}
-        print( list(filtered[['x1', 'y1', 'x2', 'y2', 'orig_width', 'orig_height']].itertuples(index=False, name=None))
-)
+        #print( list(filtered[['x1', 'y1', 'x2', 'y2', 'orig_width', 'orig_height']].itertuples(index=False, name=None)))
         if not required_cols.issubset(set(df.columns)):
             print("❌ Colonnes manquantes dans le CSV.")
             return []
@@ -133,100 +112,25 @@ def get_face_coordinates_from_csv(csv_path, target_filename):
     return []
 
 
-
-
 def get_image_url_from_author_title(neighbor_index, csv_path):
     # Retire le suffixe du fichier (ex: "_398.jpg" ou ".jpeg")
-    if neighbor_index.endswith(".jpeg") or neighbor_index.endswith(".jpg"):
-        base_name = "_".join(neighbor_index.split("_")[:-1])
-    else:
-        base_name = neighbor_index
-
+    # Enlève l'extension d'abord
+    base = re.sub(r'\.jpe?g$', '', neighbor_index)
+    # Supprime la partie "_xxx" à la fin (où xxx = chiffres ou "face1" par ex)_
+    base_name = re.sub(r'(_\d+.*)$', '', base)
     # Chargement du CSV
     df = pd.read_csv(csv_path)
-
     # Vérifie si le nom de base est présent dans la colonne 'author_title'
     if base_name in df['author_title'].values:
         image_url = df.loc[df['author_title'] == base_name, 'image_url'].values[0]
         return image_url
-
     return False
-
-
 
 
 ############################################################################################################
 #                              COMPARISON METHODS
 ############################################################################################################
-def cosine_model(X, y, neighbors):
-    """
-    Recherche les voisins les plus similaires à une image via la similarité cosinus.
-    """
-    # Calcul de la similarité
-    cosine_sim = cosine_similarity(y, X)
-
-    # Récupération des indices des k plus proches voisins
-    nearest_indices = np.argsort(-cosine_sim, axis=1)[:, :neighbors]
-
-    results = {
-        "neighbors": []
-    }
-
-    for j in range(neighbors):
-        try:
-            neighbor_index = X.index[nearest_indices[0][j]]
-            similarity = cosine_sim[0][nearest_indices[0][j]]
-
-
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
-            original_painting_name = original_painting_title_back(neighbor_index)
-
-            if "_" not in original_painting_name:
-                print(f"❌ Nom de fichier invalide (pas de _): {original_painting_name}")
-                continue
-
-            original_painting_artist_raw, original_painting_title_raw = original_painting_name.split("_", 1)
-            original_painting_artist = original_painting_artist_raw.replace("-", " ").title()
-            title_no_ext = os.path.splitext(original_painting_title_raw)[0]
-            original_painting_title = title_no_ext.replace("-", " ").title()
-            face_index = extract_face_number(neighbor_index)
-
-            # Chemin vers les données CSV
-            csv_path_coordinates = os.path.join(base_dir,"csv_source/faces_coordinates.csv")
-            face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
-            csv_path_ruth = os.path.join(base_dir,"csv_source/urlx_additionnal_paintings.csv")
-
-            # Image URL
-            image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)
-            if image_url is False:
-                original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
-                original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
-            else:
-                original_painting_wikiart_link = None
-                original_painting_image_url = image_url
-
-
-            results["neighbors"].append({
-                "index": neighbor_index,
-                "face_index": face_index,
-                "face_coordinates": face_coordinates,
-                "similarity": round(similarity, 3),
-                "original_painting_artist": original_painting_artist,
-                "original_painting_title": original_painting_title,
-                "original_painting_wikiart_link": original_painting_wikiart_link,
-                "original_painting_image_url": original_painting_image_url,
-                            })
-
-        except Exception as e:
-            print(f"❌ Erreur lors du traitement du voisin {j+1} : {e}")
-            continue
-
-    return results
-
-
-
-
-def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
+def KNN_model_ar(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
     """
     Implémentation de la recherche des plus proches voisins via KNN.
 
@@ -278,7 +182,7 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
 
         # Image URL
         image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)
-        if image_url is False:
+        if image_url is False:#pas dans les additionnal paintings donc from wikiart
             original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
             original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
         else:
@@ -298,7 +202,94 @@ def KNN_model(X,y,neighbors,algorithm='auto',leaf_size=30,metric='minkowski'):
 
     return results
 
+def KNN_model(X, y, neighbors, algorithm='auto', leaf_size=30, metric='minkowski'):
+    """
+    Implémentation de la recherche des plus proches voisins via KNN.
 
+    Paramètres :
+        X (pd.DataFrame) : Base d'embeddings.
+        y (np.ndarray) : Embedding de l'image cible.
+        neighbors (int) : Nombre de voisins valides à retourner.
+
+    Retour :
+        dict : Résultat structuré comme dans cosine_model.
+    """
+    knn = NearestNeighbors(
+        n_neighbors=min(50, len(X)),  # on prend un grand nombre de voisins (ou tous)
+        algorithm=algorithm,
+        leaf_size=leaf_size,
+        metric=metric,
+        n_jobs=-1
+    )
+
+    knn.fit(X)
+    distances, indices = knn.kneighbors(y)
+
+    results = {
+        "neighbors": []
+    }
+
+    collected = 0
+    i = 0
+    max_try = len(indices[0])
+
+    while collected < neighbors and i < max_try:
+        neighbor_index = X.index[indices[0][i]]
+        similarity = distances[0][i]
+        i += 1
+
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+        original_painting_name = original_painting_title_back(neighbor_index)
+
+        if "_" not in original_painting_name:
+            print(f"❌ Nom de fichier invalide (pas de _): {original_painting_name}")
+            continue
+
+        original_painting_artist_raw, original_painting_title_raw = original_painting_name.split("_", 1)
+        original_painting_artist = original_painting_artist_raw.replace("-", " ").title()
+        title_no_ext = os.path.splitext(original_painting_title_raw)[0]
+        original_painting_title = title_no_ext.replace("-", " ").title()
+        face_index = extract_face_number(neighbor_index)
+
+        csv_path_coordinates = os.path.join(base_dir, "csv_source/faces_coordinates.csv")
+        face_coordinates = get_face_coordinates_from_csv(csv_path_coordinates, neighbor_index)
+        csv_path_ruth = os.path.join(base_dir, "csv_source/url_additionnal_paintings.csv")
+
+        image_url = get_image_url_from_author_title(neighbor_index, csv_path_ruth)
+
+        if image_url is False:
+            original_painting_wikiart_link = f"https://www.wikiart.org/fr/{original_painting_artist_raw}/{title_no_ext}"
+
+            try:
+                response = requests.get(original_painting_wikiart_link, timeout=3)
+                if response.status_code != 200:
+                    print(f"⚠️ Lien WikiArt invalide : {original_painting_wikiart_link}")
+                    continue
+            except requests.RequestException:
+                print(f"⚠️ Erreur lors de l'accès à : {original_painting_wikiart_link}")
+                continue
+
+            original_painting_image_url = wikiart_url_to_image_url(original_painting_wikiart_link)
+        else:
+            original_painting_wikiart_link = None
+            original_painting_image_url = image_url
+        if not face_coordinates:  # Si vide ou None
+            print(f"⏭️ Visage ignoré car pas de coordonnées : {neighbor_index}")
+            continue
+        results["neighbors"].append({
+            "index": neighbor_index,
+            "face_index": face_index,
+            "face_coordinates": face_coordinates,
+            "similarity": round(similarity, 3),
+            "original_painting_artist": original_painting_artist,
+            "original_painting_title": original_painting_title,
+            "original_painting_wikiart_link": original_painting_wikiart_link,
+            "original_painting_image_url": original_painting_image_url,
+        })
+
+        collected += 1
+
+    return results
 ############################################################################################################
 #                                     COMPARISON
 ############################################################################################################
@@ -317,7 +308,7 @@ def compare(X, y, neighbors, comparison):
     Retour :
         dict : Résultats formatés par la méthode choisie.
     """
-    print(f"Embedding model: on X name, comparison model: {comparison}")
+   # print(f"Embedding model: on X name, comparison model: {comparison}")
     if comparison == "cosine":
         return cosine_model(X, y, neighbors)
     if comparison == "KNN":
